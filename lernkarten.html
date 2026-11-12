@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lernkarten IT</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0b0f1a;
+    --surface: rgba(255,255,255,.04);
+    --surface-2: rgba(255,255,255,.08);
+    --border: rgba(255,255,255,.1);
+    --text: #eef1f7;
+    --muted: #8b95ab;
+    --accent: #22d3ee;
+    --accent-2: #7c5cff;
+    --ok: #34d399;
+    --warn: #fbbf24;
+    --bad: #f43f5e;
+    --radius: 20px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--text); background: var(--bg);
+    background-image:
+      radial-gradient(900px 500px at 0% -10%, rgba(124,92,255,.22), transparent 60%),
+      radial-gradient(800px 500px at 110% 0%, rgba(34,211,238,.16), transparent 60%);
+    background-attachment: fixed;
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 22px 16px 40px; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { width: min(100%, 720px); margin: 0 auto; }
+  button { font: inherit; cursor: pointer; }
+  h1 { font-size: clamp(1.6rem, 4vw, 2.1rem); letter-spacing: -.03em; margin: 6px 0 6px; }
+  .sub { color: var(--muted); line-height: 1.5; margin: 0 0 22px; }
+
+  header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .brand { font-weight: 800; letter-spacing: -.02em; display: flex; gap: 10px; align-items: center; }
+  .logo { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 8px 24px rgba(34,211,238,.25); }
+  .stats { display: flex; gap: 8px; }
+  .pill { padding: 7px 12px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); font-size: .85rem; font-variant-numeric: tabular-nums; color: var(--muted); }
+  .pill b { color: var(--text); }
+
+  .decks { display: grid; gap: 14px; }
+  .deck {
+    text-align: left; color: var(--text); padding: 18px; border-radius: var(--radius);
+    background: var(--surface); border: 1px solid var(--border); transition: transform .2s, border-color .2s, background .2s;
+    display: grid; grid-template-columns: 1fr auto; gap: 8px 14px; align-items: center;
+  }
+  .deck:hover:not(:disabled) { transform: translateY(-2px); border-color: rgba(34,211,238,.5); background: var(--surface-2); }
+  .deck:disabled { opacity: .55; cursor: not-allowed; }
+  .deck .title { font-weight: 700; font-size: 1.05rem; }
+  .deck .desc { color: var(--muted); font-size: .9rem; grid-column: 1 / -1; line-height: 1.45; }
+  .deck .meta { color: var(--muted); font-size: .82rem; font-variant-numeric: tabular-nums; }
+  .badge { font-size: .72rem; font-weight: 700; padding: 4px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: .04em; }
+  .badge.free { background: rgba(52,211,153,.15); color: var(--ok); }
+  .badge.pro { background: rgba(251,191,36,.15); color: var(--warn); }
+  .track { height: 6px; background: rgba(255,255,255,.08); border-radius: 99px; overflow: hidden; grid-column: 1 / -1; }
+  .track > div { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius: 99px; }
+
+  .back { background: none; border: none; color: var(--muted); padding: 6px 0; margin-bottom: 8px; }
+  .back:hover { color: var(--text); }
+
+  .study { display: grid; gap: 16px; }
+  .progress { color: var(--muted); font-size: .88rem; display: flex; justify-content: space-between; }
+  .scene { perspective: 1400px; min-height: 280px; }
+  .card3d {
+    position: relative; width: 100%; min-height: 280px; transform-style: preserve-3d;
+    transition: transform .55s cubic-bezier(.2,.8,.2,1);
+  }
+  .card3d.flip { transform: rotateY(180deg); }
+  .face {
+    position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+    padding: 28px 24px; border-radius: 24px; background: var(--surface); border: 1px solid var(--border);
+    box-shadow: 0 24px 60px rgba(0,0,0,.35); overflow: auto;
+  }
+  .face.back-face { transform: rotateY(180deg); background: linear-gradient(160deg, rgba(124,92,255,.2), rgba(34,211,238,.08)); border-color: rgba(34,211,238,.35); }
+  .face .label { color: var(--accent); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 14px; }
+  .face .text { font-size: clamp(1.1rem, 3vw, 1.35rem); line-height: 1.5; font-weight: 600; }
+  .face .hint { color: var(--muted); font-size: .88rem; margin-top: 18px; }
+
+  .show {
+    width: 100%; padding: 16px; border-radius: 16px; border: 1px solid var(--border);
+    background: linear-gradient(135deg, var(--accent-2), #5b8cff); color: #fff; font-weight: 700; font-size: 1rem;
+    box-shadow: 0 10px 24px rgba(124,92,255,.3);
+  }
+  .rate { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .rate button {
+    padding: 12px 6px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+    font-weight: 700; font-size: .9rem; display: grid; gap: 2px; justify-items: center;
+  }
+  .rate button small { color: var(--muted); font-weight: 500; font-size: .72rem; }
+  .rate .again { border-color: rgba(244,63,94,.4); }
+  .rate .hard { border-color: rgba(251,191,36,.4); }
+  .rate .good { border-color: rgba(52,211,153,.4); }
+  .rate .easy { border-color: rgba(34,211,238,.4); }
+  .rate button:hover { transform: translateY(-1px); }
+  .hidden { display: none !important; }
+
+  .done { text-align: center; padding: 30px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+  .done .big { font-size: 2.6rem; }
+  .done h2 { margin: 8px 0; }
+  .done p { color: var(--muted); line-height: 1.5; }
+
+  .lock {
+    margin-top: 22px; padding: 18px; border-radius: var(--radius); border: 1px dashed rgba(251,191,36,.35);
+    background: rgba(251,191,36,.05); color: #fde68a; font-size: .92rem; line-height: 1.5;
+  }
+  .foot { display: flex; justify-content: center; margin-top: 22px; }
+  #reset { background: none; border: none; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; font-size: .85rem; }
+  @media (prefers-reduced-motion: reduce) { .card3d { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><div class="logo">🧩</div>Lernkarten IT</div>
+    <div class="stats">
+      <div class="pill">Heute <b id="todayCount">0</b></div>
+      <div class="pill">Serie <b id="streak">0</b> Tage</div>
+    </div>
+  </header>
+
+  <!-- Startseite -->
+  <section id="home">
+    <h1>IT verstehen, statt auswendig lernen</h1>
+    <p class="sub">Kurze Karten, die genau dann wieder erscheinen, wenn du sie fast vergessen hast. So bleibt Wissen hängen.</p>
+    <div class="decks" id="decks"></div>
+    <div class="lock" id="lock">
+      <b>Pro-Pakete</b> (Linux, Cloud-Security) sind in dieser Version gesperrt. Wenn die Lernmethode dir hilft, werden sie später über ein Abo freigeschaltet.
+    </div>
+  </section>
+
+  <!-- Lernansicht -->
+  <section id="study" class="hidden">
+    <button class="back" id="backBtn">← Alle Pakete</button>
+    <div class="study">
+      <div class="progress"><span id="deckName"></span><span id="remaining"></span></div>
+      <div class="scene" id="scene">
+        <div class="card3d" id="card3d">
+          <div class="face front" id="front"></div>
+          <div class="face back-face" id="back"></div>
+        </div>
+      </div>
+      <button class="show" id="showBtn">Antwort zeigen</button>
+      <div class="rate hidden" id="rate">
+        <button class="again" data-r="0">Nochmal<small>&lt; 1 Min</small></button>
+        <button class="hard" data-r="1">Schwer<small>bald</small></button>
+        <button class="good" data-r="2">Gut<small>später</small></button>
+        <button class="easy" data-r="3">Leicht<small>viel später</small></button>
+      </div>
+      <div class="done hidden" id="doneBox">
+        <div class="big">🎉</div>
+        <h2>Für heute fertig</h2>
+        <p id="doneText"></p>
+        <button class="show" id="homeBtn" style="margin-top:14px">Zurück zu den Paketen</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot"><button id="reset">Fortschritt zurücksetzen</button></div>
+</div>
+
+<script>
+const SAVE_KEY = "lernkarten-v1";
+const DAY = 86400000;
+
+// Inhalte selbst formuliert. Vor einer Veröffentlichung fachlich prüfen.
+const DECKS = [
+  { id: "netz", name: "Netzwerk-Grundlagen", pro: false,
+    desc: "OSI-Modell, Protokolle, Ports, Subnetze. Die Basis für jede IT-Laufbahn.",
+    cards: [
+      { q: "Wie viele Schichten hat das OSI-Modell?", a: "Sieben: Bitübertragung, Sicherung, Netz, Transport, Sitzung, Darstellung und Anwendung." },
+      { q: "Was ist der Unterschied zwischen TCP und UDP?", a: "TCP stellt eine gesicherte Verbindung mit Empfangsbestätigung her. UDP sendet ohne Bestätigung und ist dadurch schneller, aber unzuverlässiger." },
+      { q: "Welcher Port wird für HTTPS standardmäßig genutzt?", a: "Port 443." },
+      { q: "Was macht DNS?", a: "Es übersetzt Namen wie example.de in IP-Adressen." },
+      { q: "Wozu dient DHCP?", a: "Es verteilt IP-Adressen und weitere Netzwerkeinstellungen automatisch an Geräte im Netz." },
+      { q: "Wie viele Hosts passen in ein /24-Netz, nutzbar?", a: "254. Von 256 Adressen sind Netzadresse und Broadcast-Adresse reserviert." },
+      { q: "Was ist die Aufgabe von ARP?", a: "Es ermittelt zu einer IP-Adresse die passende MAC-Adresse im lokalen Netz." },
+      { q: "Was ist ein Default Gateway?", a: "Das Gerät, an das Pakete für Ziele außerhalb des eigenen Netzes geschickt werden, meist der Router." },
+      { q: "Was macht NAT?", a: "Es übersetzt private IP-Adressen in eine öffentliche Adresse, damit viele Geräte über eine Adresse ins Internet kommen." },
+      { q: "Was misst ein Ping?", a: "Die Erreichbarkeit eines Ziels und die Antwortzeit, per ICMP-Echo-Anfrage." },
+    ]},
+  { id: "linux", name: "Linux-Grundlagen", pro: true,
+    desc: "Terminal, Rechte, Dienste und Logs. Alles, was man auf jedem Server braucht.",
+    cards: [
+      { q: "Was zeigt ls -la?", a: "Alle Dateien, auch versteckte, mit Rechten, Besitzer, Größe und Datum im Detail." },
+      { q: "Was bedeutet chmod 755?", a: "Der Besitzer darf lesen, schreiben und ausführen. Gruppe und andere dürfen lesen und ausführen." },
+      { q: "Wofür steht sudo?", a: "Es führt einen Befehl mit erhöhten Rechten aus, meist als Root." },
+      { q: "Was steht in /etc/passwd?", a: "Die Benutzerkonten mit Name, ID, Home-Verzeichnis und Login-Shell. Passwörter stehen dort nicht mehr im Klartext." },
+      { q: "Wozu dient ssh-keygen?", a: "Es erzeugt ein Schlüsselpaar für die Anmeldung per SSH ohne Passwort." },
+      { q: "Was macht grep?", a: "Es sucht in Text oder Ausgaben nach Zeilen, die einem Muster entsprechen." },
+      { q: "Wie prüft man den Status eines Dienstes unter systemd?", a: "Mit systemctl status Dienstname." },
+      { q: "Was ist der Unterschied zwischen cat und less?", a: "cat gibt eine Datei komplett aus. less zeigt sie seitenweise und ist zum Blättern gedacht." },
+      { q: "Was bewirkt kill -9?", a: "Es beendet einen Prozess sofort und ohne Aufräumen. Das ist die letzte Option, wenn ein Prozess nicht reagiert." },
+      { q: "Was steht im Cron-Ausdruck 0 3 * * *?", a: "Jeden Tag um 3:00 Uhr." },
+    ]},
+  { id: "cloud", name: "Cloud-Security", pro: true,
+    desc: "Rechte, Schutz von Daten, Zugriff und Überwachung. Der Kern für Cloud- und Server-Sicherheit.",
+    cards: [
+      { q: "Was bedeutet Least Privilege?", a: "Jeder Benutzer und jeder Dienst bekommt nur die Rechte, die er wirklich braucht." },
+      { q: "Was ist das Shared-Responsibility-Modell?", a: "Der Cloud-Anbieter sichert die Infrastruktur. Der Kunde sichert seine Daten, Konfiguration und Zugriffe." },
+      { q: "Warum ist MFA wichtig?", a: "Ein gestohlenes Passwort allein reicht dann nicht mehr für den Zugang." },
+      { q: "Was ist der Unterschied zwischen Security Group und NACL?", a: "Security Groups sind zustandsbehaftet und wirken am Gerät. NACLs sind zustandslos und wirken am Subnetz." },
+      { q: "Warum ist eine IAM-Rolle besser als ein fest hinterlegter Schlüssel?", a: "Die Rolle liefert temporäre Zugangsdaten. Es gibt kein langlebiges Geheimnis, das abfließen kann." },
+      { q: "Was bedeutet Verschlüsselung in Ruhe und während der Übertragung?", a: "In Ruhe: gespeicherte Daten sind verschlüsselt. Während der Übertragung: Daten sind auf dem Weg, z. B. per TLS, geschützt." },
+      { q: "Was bedeutet die Backup-Regel 3-2-1?", a: "Drei Kopien, auf zwei verschiedenen Medien, davon eine außerhalb des Standorts." },
+      { q: "Wozu dienen Audit-Logs?", a: "Sie halten fest, wer wann was getan hat. Das hilft bei Fehlersuche und bei Sicherheitsvorfällen." },
+      { q: "Was ist Zero Trust?", a: "Kein Gerät und kein Benutzer gilt automatisch als vertrauenswürdig, auch nicht im internen Netz. Jeder Zugriff wird geprüft." },
+      { q: "Was ist der Unterschied zwischen Vulnerability-Scan und Penetrationstest?", a: "Ein Scan findet bekannte Schwachstellen automatisch. Ein Pentest prüft mit einem Menschen, was sich damit tatsächlich ausnutzen lässt." },
+    ]},
+];
+
+// Standard-SM-2-ähnlicher Ablauf, vereinfacht
+const DEFAULT_CARD = { ease: 2.5, interval: 0, due: 0, reps: 0 };
+let store = { cards: {}, days: {}, lastStudy: "", streak: 0 };
+let session = null; // { deck, queue: [cardKeys], index }
+
+const $ = (id) => document.getElementById(id);
+const todayKey = () => new Date().toISOString().slice(0, 10);
+
+function load() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (raw) store = { ...store, ...JSON.parse(raw) };
+  } catch (e) {}
+}
+function save() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(store)); } catch (e) {}
+}
+
+function cardKey(deck, i) { return deck.id + ":" + i; }
+function cardState(key) { return store.cards[key] || { ...DEFAULT_CARD }; }
+
+function isDue(key) {
+  const c = store.cards[key];
+  return !c || c.due <= Date.now();
+}
+
+function deckStats(deck) {
+  let due = 0, learned = 0, fresh = 0;
+  deck.cards.forEach((_, i) => {
+    const k = cardKey(deck, i);
+    const c = store.cards[k];
+    if (!c) fresh++;
+    else if (c.reps >= 3) learned++;
+    if (isDue(k)) due++;
+  });
+  return { due, learned, fresh, total: deck.cards.length };
+}
+
+function renderHome() {
+  $("home").classList.remove("hidden");
+  $("study").classList.add("hidden");
+  const wrap = $("decks");
+  wrap.innerHTML = "";
+  DECKS.filter(d => !d.pro).forEach(deck => wrap.appendChild(deckButton(deck)));
+  DECKS.filter(d => d.pro).forEach(deck => wrap.appendChild(deckButton(deck)));
+  $("lock").classList.toggle("hidden", DECKS.every(d => !d.pro));
+  updateTopStats();
+}
+
+function deckButton(deck) {
+  const s = deckStats(deck);
+  const pct = Math.round(s.learned / s.total * 100);
+  const b = document.createElement("button");
+  b.className = "deck";
+  b.disabled = deck.pro;
+  b.innerHTML =
+    `<div><div class="title">${deck.name}</div></div>` +
+    `<span class="badge ${deck.pro ? "pro" : "free"}">${deck.pro ? "Pro" : "Kostenlos"}</span>` +
+    `<div class="desc">${deck.desc}</div>` +
+    `<div class="track"><div style="width:${pct}%"></div></div>` +
+    `<div class="meta">${s.learned} / ${s.total} gelernt · ${s.due} fällig</div>` +
+    `<div class="meta">${deck.pro ? "Freischaltung folgt" : "Jetzt lernen →"}</div>`;
+  b.onclick = () => startDeck(deck);
+  return b;
+}
+
+function startDeck(deck) {
+  const due = deck.cards.map((_, i) => i).filter(i => isDue(cardKey(deck, i)));
+  shuffle(due);
+  session = { deck, queue: due, index: 0, done: 0 };
+  $("home").classList.add("hidden");
+  $("study").classList.remove("hidden");
+  $("deckName").textContent = deck.name;
+  if (due.length === 0) return finish(true);
+  showCard();
+}
+
+function showCard() {
+  const { deck, queue, index } = session;
+  if (index >= queue.length) return finish(false);
+  const i = queue[index];
+  $("card3d").classList.remove("flip");
+  const card = deck.cards[i];
+  $("front").innerHTML = `<div class="label">Frage</div><div class="text">${card.q}</div><div class="hint">Denk kurz nach, bevor du die Antwort zeigst.</div>`;
+  $("back").innerHTML = `<div class="label">Antwort</div><div class="text">${card.a}</div>`;
+  $("showBtn").classList.remove("hidden");
+  $("rate").classList.add("hidden");
+  $("remaining").textContent = `${queue.length - index} übrig`;
+}
+
+function flip() {
+  $("card3d").classList.add("flip");
+  $("showBtn").classList.add("hidden");
+  $("rate").classList.remove("hidden");
+}
+
+function rate(r) {
+  const { deck, queue, index } = session;
+  const i = queue[index];
+  const k = cardKey(deck, i);
+  const c = cardState(k);
+  if (r === 0) {
+    c.ease = Math.max(1.3, c.ease - 0.2);
+    c.interval = 0;
+    c.reps = 0;
+    queue.push(i); // kommt später in dieser Sitzung wieder
+  } else {
+    if (r === 1) { c.ease = Math.max(1.3, c.ease - 0.15); c.interval = Math.max(1, (c.interval || 1) * 1.2); }
+    if (r === 2) { c.interval = Math.max(1, (c.interval || 1) * c.ease); c.reps += 1; }
+    if (r === 3) { c.ease += 0.15; c.interval = Math.max(2, (c.interval || 1) * c.ease * 1.3); c.reps += 1; }
+    c.due = Date.now() + c.interval * DAY;
+    session.done++;
+    markToday();
+  }
+  if (r === 0) c.due = Date.now() + 60 * 1000;
+  store.cards[k] = c;
+  save();
+  session.index++;
+  updateTopStats();
+  showCard();
+}
+
+function finish(nothingDue) {
+  $("card3d").classList.remove("flip");
+  $("scene").classList.add("hidden");
+  $("showBtn").classList.add("hidden");
+  $("rate").classList.add("hidden");
+  $("remaining").textContent = "";
+  $("doneBox").classList.remove("hidden");
+  $("doneText").textContent = nothingDue
+    ? "Im Moment ist keine Karte fällig. Komm später wieder, dann erscheinen die nächsten Wiederholungen."
+    : `Du hast ${session.done} Karten bewertet. Die schwierigen kommen früher wieder, die leichten später.`;
+}
+
+function markToday() {
+  const t = todayKey();
+  if (store.lastStudy === t) return;
+  const yesterday = new Date(Date.now() - DAY).toISOString().slice(0, 10);
+  store.streak = store.lastStudy === yesterday ? store.streak + 1 : 1;
+  store.lastStudy = t;
+  store.days[t] = (store.days[t] || 0) + 1;
+  save();
+}
+
+function updateTopStats() {
+  const t = todayKey();
+  const streakActive = store.lastStudy === t || store.lastStudy === new Date(Date.now() - DAY).toISOString().slice(0, 10);
+  $("streak").textContent = streakActive ? store.streak : 0;
+  $("todayCount").textContent = store.days[t] || 0;
+}
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+}
+
+$("showBtn").onclick = flip;
+document.querySelectorAll(".rate button").forEach(b => b.onclick = () => rate(Number(b.dataset.r)));
+$("backBtn").onclick = () => { session = null; $("scene").classList.remove("hidden"); renderHome(); };
+$("homeBtn").onclick = () => { session = null; $("doneBox").classList.add("hidden"); $("scene").classList.remove("hidden"); renderHome(); };
+$("reset").onclick = () => {
+  if (!confirm("Alle Lernfortschritte wirklich löschen?")) return;
+  store = { cards: {}, days: {}, lastStudy: "", streak: 0 };
+  save();
+  renderHome();
+};
+
+document.addEventListener("keydown", (e) => {
+  if ($("study").classList.contains("hidden")) return;
+  if (e.code === "Space" && !$("showBtn").classList.contains("hidden")) { e.preventDefault(); flip(); }
+  const map = { "1": 0, "2": 1, "3": 2, "4": 3 };
+  if (map[e.key] !== undefined && !$("rate").classList.contains("hidden")) {
+    rate(map[e.key]);
+  }
+});
+
+load();
+renderHome();
+</script>
+</body>
+</html>
