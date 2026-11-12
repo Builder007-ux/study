@@ -5,60 +5,179 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vielfelder-Quiz</title>
 <style>
-  :root { color-scheme: dark; }
+  :root {
+    color-scheme: dark;
+    --bg: #0b0f1a;
+    --surface: rgba(255,255,255,.04);
+    --surface-2: rgba(255,255,255,.07);
+    --border: rgba(255,255,255,.09);
+    --text: #eef1f7;
+    --muted: #8b95ab;
+    --accent: #7c5cff;
+    --accent-2: #22d3ee;
+    --ok: #34d399;
+    --bad: #f43f5e;
+    --gold: #fbbf24;
+    --radius: 18px;
+  }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: system-ui, sans-serif; background: #0f1320; color: #e6e9ef; min-height: 100vh; display: flex; justify-content: center; padding: 20px; }
-  .wrap { width: min(100%, 560px); }
-  h1 { font-size: 1.5rem; margin: 6px 0 4px; }
-  .sub { color: #9fb0c8; font-size: .92rem; margin-bottom: 16px; }
-  .fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(900px 500px at 10% -10%, rgba(124,92,255,.25), transparent 60%),
+      radial-gradient(800px 500px at 110% 10%, rgba(34,211,238,.18), transparent 60%),
+      var(--bg);
+    background-attachment: fixed;
+    min-height: 100vh;
+    padding: 24px 16px 40px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { width: min(100%, 720px); margin: 0 auto; }
+
+  /* Header */
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: -.02em; font-size: 1.15rem; }
+  .logo {
+    width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 8px 24px rgba(124,92,255,.35);
+    font-size: 1.1rem;
+  }
+  .score-pill {
+    display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px;
+    background: var(--surface-2); border: 1px solid var(--border); font-weight: 700; font-variant-numeric: tabular-nums;
+  }
+  .score-pill span { color: var(--gold); }
+
+  .hero { margin: 8px 0 22px; }
+  .hero h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); line-height: 1.1; margin: 0 0 8px; letter-spacing: -.03em; }
+  .hero p { margin: 0; color: var(--muted); line-height: 1.5; }
+
+  /* Field tiles */
+  .fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 18px; }
+  @media (min-width: 560px) { .fields { grid-template-columns: repeat(4, 1fr); } }
   .field {
-    background: #181e30; border: 1px solid #2a3350; border-radius: 12px; padding: 12px; cursor: pointer; text-align: left; color: #e6e9ef;
+    position: relative; overflow: hidden; text-align: left; color: var(--text); cursor: pointer; font: inherit;
+    padding: 16px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border);
+    transition: transform .2s ease, border-color .2s ease, background .2s ease;
   }
-  .field.sel { border-color: #ffd166; }
-  .field b { display: block; font-size: 1rem; }
-  .field small { color: #9fb0c8; }
-  .bar { height: 6px; background: #2a3150; border-radius: 3px; overflow: hidden; margin-top: 6px; }
-  .bar > div { height: 100%; background: #06d6a0; }
-  .card { background: #181e30; border: 1px solid #2a3350; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
-  .q { font-size: 1.05rem; line-height: 1.5; margin-bottom: 12px; }
+  .field:hover { transform: translateY(-2px); background: var(--surface-2); }
+  .field.sel { border-color: var(--accent); background: linear-gradient(160deg, rgba(124,92,255,.22), rgba(34,211,238,.06)); box-shadow: 0 10px 30px rgba(124,92,255,.2); }
+  .field .ico { font-size: 1.5rem; display: block; margin-bottom: 6px; }
+  .field b { display: block; font-size: .98rem; }
+  .field small { color: var(--muted); font-size: .82rem; font-variant-numeric: tabular-nums; }
+  .track { height: 6px; background: rgba(255,255,255,.08); border-radius: 99px; overflow: hidden; margin-top: 10px; }
+  .track > div { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .6s cubic-bezier(.2,.8,.2,1); }
+  .field.done .tick {
+    position: absolute; top: 10px; right: 10px; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--ok); color: #052; font-size: .8rem; font-weight: 800; display: grid; place-items: center;
+  }
+
+  /* Question card */
+  .card {
+    position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 24px;
+    padding: 22px; margin-bottom: 18px; backdrop-filter: blur(10px);
+    box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  }
+  .meta { display: flex; justify-content: space-between; align-items: center; gap: 10px; color: var(--muted); font-size: .85rem; margin-bottom: 12px; }
+  .chip { padding: 4px 10px; border-radius: 999px; background: rgba(124,92,255,.18); color: #cbbcff; font-weight: 600; font-size: .78rem; }
+  .q { font-size: clamp(1.1rem, 2.6vw, 1.3rem); line-height: 1.4; font-weight: 700; letter-spacing: -.01em; margin: 4px 0 16px; }
+  .opts { display: grid; gap: 10px; }
   .opt {
-    display: block; width: 100%; text-align: left; margin-top: 8px; padding: 10px 12px; border-radius: 8px;
-    background: #222a42; border: 1px solid #2f3a5c; color: #e6e9ef; cursor: pointer; font: inherit;
+    display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; font: inherit; color: var(--text);
+    padding: 14px 16px; border-radius: 14px; cursor: pointer; background: var(--surface-2); border: 1px solid var(--border);
+    transition: transform .15s ease, background .2s ease, border-color .2s ease;
   }
-  .opt.right { background: #0f6b52; border-color: #06d6a0; }
-  .opt.wrong { background: #6b1f36; border-color: #ef476f; }
+  .opt:hover:not(:disabled) { transform: translateX(4px); border-color: rgba(124,92,255,.6); }
+  .opt .key {
+    flex: 0 0 30px; height: 30px; border-radius: 9px; display: grid; place-items: center;
+    background: rgba(255,255,255,.06); color: var(--muted); font-weight: 700; font-size: .85rem;
+  }
+  .opt.right { background: rgba(52,211,153,.14); border-color: var(--ok); }
+  .opt.right .key { background: var(--ok); color: #03281c; }
+  .opt.wrong { background: rgba(244,63,94,.14); border-color: var(--bad); animation: shake .4s; }
+  .opt.wrong .key { background: var(--bad); color: #fff; }
   .opt:disabled { cursor: default; }
-  .row { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
-  button.main {
-    background: #ffd166; color: #222; border: none; border-radius: 8px; padding: 10px 16px; font-weight: 700; cursor: pointer;
+  @keyframes shake { 20%,60% { transform: translateX(-6px); } 40%,80% { transform: translateX(6px); } }
+
+  .feedback {
+    margin-top: 14px; min-height: 1.4em; font-weight: 600; font-size: .95rem; color: var(--muted);
   }
-  .board { background: #181e30; border: 1px solid #2a3350; border-radius: 12px; padding: 14px; margin-top: 16px; }
-  .board table { width: 100%; border-collapse: collapse; font-size: .95rem; }
-  .board td { padding: 6px 4px; border-bottom: 1px solid #2a3350; }
-  .board td:last-child { text-align: right; font-weight: 700; }
-  .hint { color: #9fb0c8; font-size: .85rem; margin-top: 10px; }
-  #reset { margin-top: 14px; background: none; border: none; color: #556; cursor: pointer; font: inherit; }
+  .feedback.ok { color: var(--ok); }
+  .feedback.bad { color: #fb7185; }
+  .actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+  .btn {
+    font: inherit; font-weight: 700; border: none; cursor: pointer; border-radius: 14px; padding: 12px 20px; color: #fff;
+    background: linear-gradient(135deg, var(--accent), #5b8cff); box-shadow: 0 10px 24px rgba(124,92,255,.35);
+    transition: transform .15s ease, filter .2s ease;
+  }
+  .btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+  .btn.ghost { background: transparent; box-shadow: none; border: 1px solid var(--border); color: var(--muted); }
+  .done-msg { text-align: center; padding: 18px 8px 6px; }
+  .done-msg .big { font-size: 2.6rem; }
+  .done-msg h2 { margin: 6px 0 6px; font-size: 1.3rem; }
+  .done-msg p { color: var(--muted); margin: 0 0 16px; line-height: 1.5; }
+
+  /* Leaderboard */
+  .board {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px;
+  }
+  .board h3 { margin: 0 0 12px; font-size: .95rem; letter-spacing: .02em; color: var(--muted); text-transform: uppercase; }
+  .row {
+    display: flex; justify-content: space-between; align-items: center; padding: 10px 2px; border-bottom: 1px solid var(--border); font-size: .95rem;
+  }
+  .row:last-of-type { border-bottom: none; }
+  .row b { font-variant-numeric: tabular-nums; }
+  .row.total { font-size: 1.05rem; padding-top: 14px; }
+  .row.total b { color: var(--gold); font-size: 1.25rem; }
+  .rank {
+    margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: rgba(251,191,36,.08); color: #fde68a; font-size: .9rem; line-height: 1.4;
+  }
+  .foot { display: flex; justify-content: center; margin-top: 18px; }
+  #reset { font: inherit; font-size: .85rem; color: var(--muted); background: none; border: none; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+  /* Confetti */
+  .burst { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 10; }
+  .bit {
+    position: absolute; top: -10px; width: 8px; height: 12px; border-radius: 2px; opacity: .95;
+    animation: fall 1.4s cubic-bezier(.2,.6,.3,1) forwards;
+  }
+  @keyframes fall {
+    to { transform: translate(var(--dx), 110vh) rotate(var(--rot)); opacity: 0; }
+  }
+  .pop { animation: pop .35s ease; }
+  @keyframes pop { 0% { transform: scale(.96); opacity: .4; } 100% { transform: scale(1); opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Vielfelder-Quiz</h1>
-  <div class="sub">Sammle Punkte in mehreren Feldern. Eine Schwäche in einem Feld gleichst du mit einem anderen aus.</div>
+  <header>
+    <div class="brand"><div class="logo">🧠</div>Vielfelder</div>
+    <div class="score-pill">Punkte <span id="topScore">0</span></div>
+  </header>
+
+  <section class="hero">
+    <h1>Wie breit ist dein Wissen?</h1>
+    <p>Beantworte Fragen in mehreren Feldern. Jedes Feld mit mindestens einer richtigen Antwort bringt dir einen Bonus. Vielseitigkeit lohnt sich.</p>
+  </section>
 
   <div class="fields" id="fields"></div>
 
-  <div class="card" id="play"></div>
+  <div class="card pop" id="play"></div>
 
   <div class="board">
-    <table>
-      <tbody id="board"></tbody>
-    </table>
-    <div class="hint" id="bonusInfo"></div>
+    <h3>Dein Stand</h3>
+    <div id="board"></div>
+    <div class="rank" id="rank"></div>
   </div>
 
-  <button id="reset">Fortschritt zurücksetzen</button>
+  <div class="foot"><button id="reset">Fortschritt zurücksetzen</button></div>
 </div>
+
+<div class="burst" id="burst"></div>
 
 <script>
 const SAVE_KEY = "vielfelder-v1";
@@ -67,28 +186,28 @@ const FIELD_BONUS = 15; // Bonus, sobald ein Feld mindestens eine richtige Antwo
 
 // Fragen: bitte vor Veröffentlichung gegen Quellen prüfen
 const FIELDS = [
-  { id: "allgemein", name: "Allgemeinwissen", questions: [
+  { id: "allgemein", name: "Allgemeinwissen", icon: "💡", questions: [
     { q: "Welcher Dichter schrieb „Faust“?", a: ["Schiller", "Goethe", "Heine"], c: 1 },
     { q: "Wie viele Planeten hat unser Sonnensystem?", a: ["7", "8", "9"], c: 1 },
     { q: "Welches Element hat das chemische Zeichen O?", a: ["Gold", "Sauerstoff", "Osmium"], c: 1 },
     { q: "Wie viele Tage hat ein Schaltjahr?", a: ["365", "366", "367"], c: 1 },
     { q: "Welches Meer liegt zwischen Europa und Afrika?", a: ["Ostsee", "Mittelmeer", "Nordsee"], c: 1 },
   ]},
-  { id: "nationen", name: "Nationen", questions: [
+  { id: "nationen", name: "Nationen", icon: "🌍", questions: [
     { q: "Was ist die Hauptstadt von Kanada?", a: ["Toronto", "Ottawa", "Vancouver"], c: 1 },
     { q: "Welches Land ist nach Fläche das größte der Welt?", a: ["China", "USA", "Russland"], c: 2 },
     { q: "Welche Hauptstadt hat Australien?", a: ["Sydney", "Canberra", "Melbourne"], c: 1 },
     { q: "Welcher Fluss fließt durch Paris?", a: ["Rhein", "Seine", "Donau"], c: 1 },
     { q: "Wo liegt das Land Japan?", a: ["In Südostasien", "In Ostasien", "In Südamerika"], c: 1 },
   ]},
-  { id: "sprachen", name: "Sprachen", questions: [
+  { id: "sprachen", name: "Sprachen", icon: "🗣️", questions: [
     { q: "Was bedeutet „Bonjour“ auf Deutsch?", a: ["Gute Nacht", "Guten Tag", "Auf Wiedersehen"], c: 1 },
     { q: "Was bedeutet „Gracias“ auf Deutsch?", a: ["Bitte", "Danke", "Entschuldigung"], c: 1 },
     { q: "Welche Sprache wird in Brasilien hauptsächlich gesprochen?", a: ["Spanisch", "Portugiesisch", "Französisch"], c: 1 },
     { q: "Was bedeutet „Arigatō“ auf Deutsch?", a: ["Hallo", "Danke", "Tschüss"], c: 1 },
     { q: "Welches Alphabet hat Griechisch?", a: ["Lateinisch", "Griechisch", "Kyrillisch"], c: 1 },
   ]},
-  { id: "schach", name: "Schach", questions: [
+  { id: "schach", name: "Schach", icon: "♞", questions: [
     { q: "Wie viele Figuren hat jede Seite zu Spielbeginn?", a: ["12", "16", "20"], c: 1 },
     { q: "Welche Figur zieht ausschließlich diagonal?", a: ["Turm", "Läufer", "Springer"], c: 1 },
     { q: "Welche Seite beginnt im Schach?", a: ["Schwarz", "Weiß", "Wer zuerst klickt"], c: 1 },
@@ -96,9 +215,20 @@ const FIELDS = [
     { q: "Welche Figur darf springen?", a: ["Springer", "Dame", "Bauer"], c: 0 },
   ]},
 ];
+const LETTERS = ["A", "B", "C", "D"];
+const RANKS = [
+  { min: 0,   text: "Starter. Jede Runde macht dich breiter." },
+  { min: 60,  text: "Auf dem Weg. Ein weiteres Feld komplett öffnen lohnt sich." },
+  { min: 120, text: "Vielseitig. Du verbindest Wissen aus mehreren Welten." },
+  { min: 180, text: "Enzyklopädisch. Alle Felder sind im Spiel." },
+];
 
 let state = { fields: {}, answered: {} };
 // state.fields[id] = punkte, state.answered[id] = { frageIndex: true }
+let activeField = FIELDS[0].id;
+let current = null; // { field, index }
+
+const $ = (id) => document.getElementById(id);
 
 function load() {
   try {
@@ -110,27 +240,30 @@ function save() {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {}
 }
 
-let activeField = FIELDS[0].id;
-let current = null; // { field, index }
-
 function fieldMax(f) { return f.questions.length * POINTS; }
 function fieldPoints(id) { return state.fields[id] || 0; }
+function fieldDone(f) { return Object.keys(state.answered[f.id] || {}).length >= f.questions.length; }
 
 function totalScore() {
-  let sum = FIELDS.reduce((s, f) => s + fieldPoints(f.id), 0);
+  const sum = FIELDS.reduce((s, f) => s + fieldPoints(f.id), 0);
   const bonus = FIELDS.filter(f => fieldPoints(f.id) > 0).length * FIELD_BONUS;
   return { sum, bonus, total: sum + bonus };
 }
 
 function renderFields() {
-  const el = document.getElementById("fields");
+  const el = $("fields");
   el.innerHTML = "";
   FIELDS.forEach(f => {
     const pct = Math.min(100, Math.round(fieldPoints(f.id) / fieldMax(f) * 100));
     const b = document.createElement("button");
-    b.className = "field" + (activeField === f.id ? " sel" : "");
-    b.innerHTML = `<b>${f.name}</b><small>${fieldPoints(f.id)} / ${fieldMax(f)} Punkte</small><div class="bar"><div style="width:${pct}%"></div></div>`;
-    b.onclick = () => { activeField = f.id; nextQuestion(); renderFields(); };
+    b.className = "field" + (activeField === f.id ? " sel" : "") + (fieldDone(f) ? " done" : "");
+    b.innerHTML =
+      `<span class="ico">${f.icon}</span>` +
+      `<b>${f.name}</b>` +
+      `<small>${fieldPoints(f.id)} / ${fieldMax(f)} Punkte</small>` +
+      `<div class="track"><div style="width:${pct}%"></div></div>` +
+      (fieldDone(f) ? `<span class="tick">✓</span>` : "");
+    b.onclick = () => { activeField = f.id; renderFields(); nextQuestion(); };
     el.appendChild(b);
   });
 }
@@ -139,10 +272,14 @@ function nextQuestion() {
   const f = FIELDS.find(x => x.id === activeField);
   const answered = state.answered[f.id] || {};
   const open = f.questions.map((q, i) => i).filter(i => !answered[i]);
-  const play = document.getElementById("play");
+  const play = $("play");
+  play.classList.remove("pop"); void play.offsetWidth; play.classList.add("pop");
   if (open.length === 0) {
     current = null;
-    play.innerHTML = `<div class="q">Du hast alle Fragen in ${f.name} beantwortet. Wechsle das Feld oder setze den Fortschritt zurück.</div>`;
+    play.innerHTML =
+      `<div class="done-msg"><div class="big">${f.icon}</div>` +
+      `<h2>${f.name} abgeschlossen</h2>` +
+      `<p>Du hast alle Fragen in diesem Feld beantwortet. Wähle ein anderes Feld oder setze den Fortschritt zurück.</p></div>`;
     renderBoard();
     return;
   }
@@ -154,57 +291,94 @@ function nextQuestion() {
 function renderQuestion() {
   const { field, index } = current;
   const q = field.questions[index];
-  const play = document.getElementById("play");
-  play.innerHTML = `<div class="q">${field.name}: ${q.q}</div>` +
-    q.a.map((opt, i) => `<button class="opt" data-i="${i}">${opt}</button>`).join("") +
-    `<div class="row"><span id="feedback" class="hint"></span></div>`;
-  play.querySelectorAll(".opt").forEach(btn => {
+  const answeredCount = Object.keys(state.answered[field.id] || {}).length;
+  $("play").innerHTML =
+    `<div class="meta"><span class="chip">${field.icon} ${field.name}</span><span>Frage ${answeredCount + 1} von ${field.questions.length}</span></div>` +
+    `<div class="q">${q.q}</div>` +
+    `<div class="opts">` +
+    q.a.map((opt, i) => `<button class="opt" data-i="${i}"><span class="key">${LETTERS[i]}</span><span>${opt}</span></button>`).join("") +
+    `</div>` +
+    `<div class="feedback" id="feedback">Wähle eine Antwort (Tasten A, B, C).</div>`;
+  document.querySelectorAll(".opt").forEach(btn => {
     btn.onclick = () => answer(Number(btn.dataset.i));
   });
 }
 
 function answer(i) {
+  if (!current) return;
   const { field, index } = current;
   const q = field.questions[index];
   const buttons = document.querySelectorAll(".opt");
   buttons.forEach(b => b.disabled = true);
   buttons[q.c].classList.add("right");
-  const fb = document.getElementById("feedback");
+  const fb = $("feedback");
   if (i === q.c) {
-    buttons[i].classList.add("right");
     state.fields[field.id] = fieldPoints(field.id) + POINTS;
-    fb.textContent = `Richtig, +${POINTS} Punkte.`;
+    fb.textContent = `Richtig! +${POINTS} Punkte`;
+    fb.className = "feedback ok";
+    burst(28);
   } else {
     buttons[i].classList.add("wrong");
-    fb.textContent = `Falsch. Richtig war: ${q.a[q.c]}`;
+    fb.textContent = `Leider falsch. Richtig war: ${q.a[q.c]}`;
+    fb.className = "feedback bad";
   }
   state.answered[field.id] = state.answered[field.id] || {};
   state.answered[field.id][index] = true;
   save();
+
   const next = document.createElement("button");
-  next.className = "main";
-  next.textContent = "Weiter";
+  next.className = "btn";
+  next.textContent = fieldDone(field) ? "Feld abschließen" : "Weiter →";
+  next.style.marginTop = "14px";
+  next.style.width = "100%";
   next.onclick = () => { renderFields(); nextQuestion(); renderBoard(); };
-  document.getElementById("play").appendChild(next);
+  $("play").appendChild(next);
+  renderFields();
   renderBoard();
 }
 
 function renderBoard() {
   const t = totalScore();
-  const body = document.getElementById("board");
-  body.innerHTML = FIELDS.map(f => `<tr><td>${f.name}</td><td>${fieldPoints(f.id)}</td></tr>`).join("") +
-    `<tr><td>Vielseitigkeits-Bonus</td><td>+${t.bonus}</td></tr>` +
-    `<tr><td><b>Gesamt</b></td><td><b>${t.total}</b></td></tr>`;
-  document.getElementById("bonusInfo").textContent =
-    `Jedes Feld mit mindestens einer richtigen Antwort bringt ${FIELD_BONUS} Bonuspunkte. Breite lohnt sich.`;
+  $("topScore").textContent = t.total;
+  $("board").innerHTML =
+    FIELDS.map(f => `<div class="row"><span>${f.icon} ${f.name}</span><b>${fieldPoints(f.id)}</b></div>`).join("") +
+    `<div class="row"><span>Vielseitigkeits-Bonus</span><b>+${t.bonus}</b></div>` +
+    `<div class="row total"><span>Gesamt</span><b>${t.total}</b></div>`;
+  const rank = [...RANKS].reverse().find(r => t.total >= r.min);
+  $("rank").textContent = rank.text;
 }
 
-document.getElementById("reset").onclick = () => {
+function burst(n) {
+  const host = $("burst");
+  const colors = ["#7c5cff", "#22d3ee", "#34d399", "#fbbf24", "#f43f5e"];
+  for (let i = 0; i < n; i++) {
+    const bit = document.createElement("span");
+    bit.className = "bit";
+    bit.style.left = (Math.random() * 100) + "%";
+    bit.style.background = colors[i % colors.length];
+    bit.style.setProperty("--dx", (Math.random() * 200 - 100) + "px");
+    bit.style.setProperty("--rot", (Math.random() * 720 - 360) + "deg");
+    bit.style.animationDelay = (Math.random() * 0.2) + "s";
+    host.appendChild(bit);
+    setTimeout(() => bit.remove(), 1800);
+  }
+}
+
+$("reset").onclick = () => {
   if (!confirm("Fortschritt wirklich zurücksetzen?")) return;
   state = { fields: {}, answered: {} };
   save();
   renderFields(); nextQuestion(); renderBoard();
 };
+
+document.addEventListener("keydown", (e) => {
+  if (!current) return;
+  const map = { a: 0, b: 1, c: 2, d: 3 };
+  const i = map[e.key.toLowerCase()];
+  if (i === undefined) return;
+  const btn = document.querySelectorAll(".opt")[i];
+  if (btn && !btn.disabled) btn.click();
+});
 
 load();
 renderFields();
