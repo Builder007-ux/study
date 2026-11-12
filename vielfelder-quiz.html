@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vielfelder-Quiz</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: #0f1320; color: #e6e9ef; min-height: 100vh; display: flex; justify-content: center; padding: 20px; }
+  .wrap { width: min(100%, 560px); }
+  h1 { font-size: 1.5rem; margin: 6px 0 4px; }
+  .sub { color: #9fb0c8; font-size: .92rem; margin-bottom: 16px; }
+  .fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+  .field {
+    background: #181e30; border: 1px solid #2a3350; border-radius: 12px; padding: 12px; cursor: pointer; text-align: left; color: #e6e9ef;
+  }
+  .field.sel { border-color: #ffd166; }
+  .field b { display: block; font-size: 1rem; }
+  .field small { color: #9fb0c8; }
+  .bar { height: 6px; background: #2a3150; border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .bar > div { height: 100%; background: #06d6a0; }
+  .card { background: #181e30; border: 1px solid #2a3350; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+  .q { font-size: 1.05rem; line-height: 1.5; margin-bottom: 12px; }
+  .opt {
+    display: block; width: 100%; text-align: left; margin-top: 8px; padding: 10px 12px; border-radius: 8px;
+    background: #222a42; border: 1px solid #2f3a5c; color: #e6e9ef; cursor: pointer; font: inherit;
+  }
+  .opt.right { background: #0f6b52; border-color: #06d6a0; }
+  .opt.wrong { background: #6b1f36; border-color: #ef476f; }
+  .opt:disabled { cursor: default; }
+  .row { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  button.main {
+    background: #ffd166; color: #222; border: none; border-radius: 8px; padding: 10px 16px; font-weight: 700; cursor: pointer;
+  }
+  .board { background: #181e30; border: 1px solid #2a3350; border-radius: 12px; padding: 14px; margin-top: 16px; }
+  .board table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+  .board td { padding: 6px 4px; border-bottom: 1px solid #2a3350; }
+  .board td:last-child { text-align: right; font-weight: 700; }
+  .hint { color: #9fb0c8; font-size: .85rem; margin-top: 10px; }
+  #reset { margin-top: 14px; background: none; border: none; color: #556; cursor: pointer; font: inherit; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Vielfelder-Quiz</h1>
+  <div class="sub">Sammle Punkte in mehreren Feldern. Eine Schwäche in einem Feld gleichst du mit einem anderen aus.</div>
+
+  <div class="fields" id="fields"></div>
+
+  <div class="card" id="play"></div>
+
+  <div class="board">
+    <table>
+      <tbody id="board"></tbody>
+    </table>
+    <div class="hint" id="bonusInfo"></div>
+  </div>
+
+  <button id="reset">Fortschritt zurücksetzen</button>
+</div>
+
+<script>
+const SAVE_KEY = "vielfelder-v1";
+const POINTS = 10;
+const FIELD_BONUS = 15; // Bonus, sobald ein Feld mindestens eine richtige Antwort hat
+
+// Fragen: bitte vor Veröffentlichung gegen Quellen prüfen
+const FIELDS = [
+  { id: "allgemein", name: "Allgemeinwissen", questions: [
+    { q: "Welcher Dichter schrieb „Faust“?", a: ["Schiller", "Goethe", "Heine"], c: 1 },
+    { q: "Wie viele Planeten hat unser Sonnensystem?", a: ["7", "8", "9"], c: 1 },
+    { q: "Welches Element hat das chemische Zeichen O?", a: ["Gold", "Sauerstoff", "Osmium"], c: 1 },
+    { q: "Wie viele Tage hat ein Schaltjahr?", a: ["365", "366", "367"], c: 1 },
+    { q: "Welches Meer liegt zwischen Europa und Afrika?", a: ["Ostsee", "Mittelmeer", "Nordsee"], c: 1 },
+  ]},
+  { id: "nationen", name: "Nationen", questions: [
+    { q: "Was ist die Hauptstadt von Kanada?", a: ["Toronto", "Ottawa", "Vancouver"], c: 1 },
+    { q: "Welches Land ist nach Fläche das größte der Welt?", a: ["China", "USA", "Russland"], c: 2 },
+    { q: "Welche Hauptstadt hat Australien?", a: ["Sydney", "Canberra", "Melbourne"], c: 1 },
+    { q: "Welcher Fluss fließt durch Paris?", a: ["Rhein", "Seine", "Donau"], c: 1 },
+    { q: "Wo liegt das Land Japan?", a: ["In Südostasien", "In Ostasien", "In Südamerika"], c: 1 },
+  ]},
+  { id: "sprachen", name: "Sprachen", questions: [
+    { q: "Was bedeutet „Bonjour“ auf Deutsch?", a: ["Gute Nacht", "Guten Tag", "Auf Wiedersehen"], c: 1 },
+    { q: "Was bedeutet „Gracias“ auf Deutsch?", a: ["Bitte", "Danke", "Entschuldigung"], c: 1 },
+    { q: "Welche Sprache wird in Brasilien hauptsächlich gesprochen?", a: ["Spanisch", "Portugiesisch", "Französisch"], c: 1 },
+    { q: "Was bedeutet „Arigatō“ auf Deutsch?", a: ["Hallo", "Danke", "Tschüss"], c: 1 },
+    { q: "Welches Alphabet hat Griechisch?", a: ["Lateinisch", "Griechisch", "Kyrillisch"], c: 1 },
+  ]},
+  { id: "schach", name: "Schach", questions: [
+    { q: "Wie viele Figuren hat jede Seite zu Spielbeginn?", a: ["12", "16", "20"], c: 1 },
+    { q: "Welche Figur zieht ausschließlich diagonal?", a: ["Turm", "Läufer", "Springer"], c: 1 },
+    { q: "Welche Seite beginnt im Schach?", a: ["Schwarz", "Weiß", "Wer zuerst klickt"], c: 1 },
+    { q: "Wie viele Felder hat ein Schachbrett?", a: ["54", "64", "81"], c: 1 },
+    { q: "Welche Figur darf springen?", a: ["Springer", "Dame", "Bauer"], c: 0 },
+  ]},
+];
+
+let state = { fields: {}, answered: {} };
+// state.fields[id] = punkte, state.answered[id] = { frageIndex: true }
+
+function load() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (raw) state = { ...state, ...JSON.parse(raw) };
+  } catch (e) {}
+}
+function save() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+let activeField = FIELDS[0].id;
+let current = null; // { field, index }
+
+function fieldMax(f) { return f.questions.length * POINTS; }
+function fieldPoints(id) { return state.fields[id] || 0; }
+
+function totalScore() {
+  let sum = FIELDS.reduce((s, f) => s + fieldPoints(f.id), 0);
+  const bonus = FIELDS.filter(f => fieldPoints(f.id) > 0).length * FIELD_BONUS;
+  return { sum, bonus, total: sum + bonus };
+}
+
+function renderFields() {
+  const el = document.getElementById("fields");
+  el.innerHTML = "";
+  FIELDS.forEach(f => {
+    const pct = Math.min(100, Math.round(fieldPoints(f.id) / fieldMax(f) * 100));
+    const b = document.createElement("button");
+    b.className = "field" + (activeField === f.id ? " sel" : "");
+    b.innerHTML = `<b>${f.name}</b><small>${fieldPoints(f.id)} / ${fieldMax(f)} Punkte</small><div class="bar"><div style="width:${pct}%"></div></div>`;
+    b.onclick = () => { activeField = f.id; nextQuestion(); renderFields(); };
+    el.appendChild(b);
+  });
+}
+
+function nextQuestion() {
+  const f = FIELDS.find(x => x.id === activeField);
+  const answered = state.answered[f.id] || {};
+  const open = f.questions.map((q, i) => i).filter(i => !answered[i]);
+  const play = document.getElementById("play");
+  if (open.length === 0) {
+    current = null;
+    play.innerHTML = `<div class="q">Du hast alle Fragen in ${f.name} beantwortet. Wechsle das Feld oder setze den Fortschritt zurück.</div>`;
+    renderBoard();
+    return;
+  }
+  const idx = open[Math.floor(Math.random() * open.length)];
+  current = { field: f, index: idx };
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const { field, index } = current;
+  const q = field.questions[index];
+  const play = document.getElementById("play");
+  play.innerHTML = `<div class="q">${field.name}: ${q.q}</div>` +
+    q.a.map((opt, i) => `<button class="opt" data-i="${i}">${opt}</button>`).join("") +
+    `<div class="row"><span id="feedback" class="hint"></span></div>`;
+  play.querySelectorAll(".opt").forEach(btn => {
+    btn.onclick = () => answer(Number(btn.dataset.i));
+  });
+}
+
+function answer(i) {
+  const { field, index } = current;
+  const q = field.questions[index];
+  const buttons = document.querySelectorAll(".opt");
+  buttons.forEach(b => b.disabled = true);
+  buttons[q.c].classList.add("right");
+  const fb = document.getElementById("feedback");
+  if (i === q.c) {
+    buttons[i].classList.add("right");
+    state.fields[field.id] = fieldPoints(field.id) + POINTS;
+    fb.textContent = `Richtig, +${POINTS} Punkte.`;
+  } else {
+    buttons[i].classList.add("wrong");
+    fb.textContent = `Falsch. Richtig war: ${q.a[q.c]}`;
+  }
+  state.answered[field.id] = state.answered[field.id] || {};
+  state.answered[field.id][index] = true;
+  save();
+  const next = document.createElement("button");
+  next.className = "main";
+  next.textContent = "Weiter";
+  next.onclick = () => { renderFields(); nextQuestion(); renderBoard(); };
+  document.getElementById("play").appendChild(next);
+  renderBoard();
+}
+
+function renderBoard() {
+  const t = totalScore();
+  const body = document.getElementById("board");
+  body.innerHTML = FIELDS.map(f => `<tr><td>${f.name}</td><td>${fieldPoints(f.id)}</td></tr>`).join("") +
+    `<tr><td>Vielseitigkeits-Bonus</td><td>+${t.bonus}</td></tr>` +
+    `<tr><td><b>Gesamt</b></td><td><b>${t.total}</b></td></tr>`;
+  document.getElementById("bonusInfo").textContent =
+    `Jedes Feld mit mindestens einer richtigen Antwort bringt ${FIELD_BONUS} Bonuspunkte. Breite lohnt sich.`;
+}
+
+document.getElementById("reset").onclick = () => {
+  if (!confirm("Fortschritt wirklich zurücksetzen?")) return;
+  state = { fields: {}, answered: {} };
+  save();
+  renderFields(); nextQuestion(); renderBoard();
+};
+
+load();
+renderFields();
+nextQuestion();
+renderBoard();
+</script>
+</body>
+</html>
