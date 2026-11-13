@@ -228,6 +228,50 @@ const DECKS = [
     ]},
 ];
 
+// Kurze Merkhilfe pro Karte, Schlüssel = Paket-ID:Kartennummer
+const TIPS = {
+  "netz:0": "Merkhilfe von unten nach oben: Please Do Not Throw Sausage Pizza Away.",
+  "netz:1": "TCP ist wie ein Einschreiben mit Bestätigung, UDP wie eine Postkarte.",
+  "netz:2": "443 für HTTPS, 80 für HTTP, 22 für SSH.",
+  "netz:3": "DNS ist das Telefonbuch des Internets.",
+  "netz:4": "DHCP vergibt Adresse, Gateway und DNS-Server automatisch.",
+  "netz:5": "Hosts = 2^(32 − Präfix) − 2. Bei /24: 256 − 2 = 254.",
+  "netz:6": "ARP fragt im lokalen Netz: Wer hat diese IP-Adresse?",
+  "netz:7": "Das Gateway ist die Ausfahrt aus dem eigenen Netz.",
+  "netz:8": "NAT: viele private Geräte, eine öffentliche Adresse.",
+  "netz:9": "Keine Antwort auf Ping heißt nicht sicher offline. Eine Firewall kann Ping blockieren.",
+  "linux:0": "ls -la: l = long (Details), a = all (auch versteckte Dateien).",
+  "linux:1": "Rechte als Zahlen: r=4, w=2, x=1. 7 = 4+2+1, 5 = 4+1.",
+  "linux:2": "sudo: nur nutzen, wenn es nötig ist.",
+  "linux:3": "Passwort-Hashes stehen heute in /etc/shadow, nicht in /etc/passwd.",
+  "linux:4": "Der öffentliche Schlüssel geht auf den Server, der private bleibt bei dir.",
+  "linux:5": "grep sucht nach Mustern, z. B. grep Fehler logdatei.txt.",
+  "linux:6": "status zeigt, ob der Dienst läuft und die letzten Logzeilen.",
+  "linux:7": "less blättert mit den Pfeiltasten, q beendet.",
+  "linux:8": "Erst kill ohne -9 versuchen. -9 ist das Brecheisen.",
+  "linux:9": "Reihenfolge: Minute, Stunde, Tag, Monat, Wochentag.",
+  "cloud:0": "Zugriff so eng wie möglich. Im Zweifel weniger Rechte.",
+  "cloud:1": "Der Anbieter sichert das Gebäude, du sicherst deine Schlösser.",
+  "cloud:2": "MFA = Passwort plus zweiter Faktor, z. B. App oder Sicherheitsschlüssel.",
+  "cloud:3": "Security Group = Türsteher am Gerät. NACL = Wache am Eingang des Subnetzes.",
+  "cloud:4": "Eine Rolle ist ein befristeter Ausweis, kein fester Hausschlüssel.",
+  "cloud:5": "Ruhe = Tresor. Übertragung = gesicherter Transportweg.",
+  "cloud:6": "3-2-1: drei Kopien, zwei Medien, eine außerhalb.",
+  "cloud:7": "Logs sind das Gedächtnis des Systems. Ohne sie gibt es keine Aufklärung.",
+  "cloud:8": "Zero Trust: jeder Zugriff wird geprüft, nichts wird einfach geglaubt.",
+  "cloud:9": "Scan = Checkliste mit Software. Pentest = Einbruchstest mit Auftrag und Mensch.",
+  "sicherheit:0": "Warnzeichen: Dringlichkeit, falsche Absender, Links, die nicht passen.",
+  "sicherheit:1": "Wird ein Dienst gehackt, sind alle Konten mit demselben Passwort gefährdet.",
+  "sicherheit:2": "Passwort-Manager, starkes Master-Passwort und MFA sind ein solider Standard.",
+  "sicherheit:3": "Hash = Fingerabdruck, nicht umkehrbar. Verschlüsselung = Schloss mit Schlüssel.",
+  "sicherheit:4": "Eine Firewall ist ein Pförtner mit einer Regelliste.",
+  "sicherheit:5": "Angreifer knacken oft Menschen, nicht Technik.",
+  "sicherheit:6": "Malware ist der Oberbegriff. Viren sind nur eine Sorte.",
+  "sicherheit:7": "Backups sind die beste Antwort auf Ransomware.",
+  "sicherheit:8": "Updates schließen Lücken, die bereits bekannt sind.",
+  "sicherheit:9": "Ein VPN schützt den Weg, nicht das Gerät selbst.",
+};
+
 // Standard-SM-2-ähnlicher Ablauf, vereinfacht
 const DEFAULT_CARD = { ease: 2.5, interval: 0, due: 0, reps: 0 };
 let store = { cards: {}, days: {}, lastStudy: "", streak: 0 };
@@ -312,7 +356,9 @@ function showCard() {
   $("card3d").classList.remove("flip");
   const card = deck.cards[i];
   $("front").innerHTML = `<div class="label">Frage</div><div class="text">${card.q}</div><div class="hint">Denk kurz nach, bevor du die Antwort zeigst.</div>`;
-  $("back").innerHTML = `<div class="label">Antwort</div><div class="text">${card.a}</div>`;
+  const tip = TIPS[cardKey(deck, i)];
+  $("back").innerHTML = `<div class="label">Antwort</div><div class="text">${card.a}</div>` +
+    (tip ? `<div class="hint">💡 ${tip}</div>` : "");
   $("showBtn").classList.remove("hidden");
   $("rate").classList.add("hidden");
   $("remaining").textContent = `${queue.length - index} übrig`;
