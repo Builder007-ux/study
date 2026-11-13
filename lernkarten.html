@@ -317,6 +317,14 @@ function renderHome() {
   wrap.innerHTML = "";
   DECKS.filter(d => !d.pro).forEach(deck => wrap.appendChild(deckButton(deck)));
   DECKS.filter(d => d.pro).forEach(deck => wrap.appendChild(deckButton(deck)));
+  const mixed = DECKS.filter(d => !d.pro);
+  const dueAll = mixed.reduce((n, d) => n + deckStats(d).due, 0);
+  const mix = document.createElement("button");
+  mix.className = "show";
+  mix.style.marginBottom = "14px";
+  mix.textContent = dueAll > 0 ? `Heute lernen (${dueAll} fällige Karten)` : "Heute lernen (gerade nichts fällig)";
+  mix.onclick = startMixed;
+  wrap.prepend(mix);
   $("lock").classList.toggle("hidden", DECKS.every(d => !d.pro));
   updateTopStats();
 }
@@ -338,21 +346,31 @@ function deckButton(deck) {
   return b;
 }
 
-function startDeck(deck) {
-  const due = deck.cards.map((_, i) => i).filter(i => isDue(cardKey(deck, i)));
-  shuffle(due);
-  session = { deck, queue: due, index: 0, done: 0 };
+function dueItems(decks) {
+  const items = [];
+  decks.forEach(deck => deck.cards.forEach((_, i) => {
+    if (isDue(cardKey(deck, i))) items.push({ deck, i });
+  }));
+  shuffle(items);
+  return items;
+}
+
+function startDeck(deck) { startSession(deck.name, dueItems([deck])); }
+function startMixed() { startSession("Heute lernen", dueItems(DECKS.filter(d => !d.pro))); }
+
+function startSession(title, items) {
+  session = { title, queue: items, index: 0, done: 0 };
   $("home").classList.add("hidden");
   $("study").classList.remove("hidden");
-  $("deckName").textContent = deck.name;
-  if (due.length === 0) return finish(true);
+  $("deckName").textContent = title;
+  if (items.length === 0) return finish(true);
   showCard();
 }
 
 function showCard() {
-  const { deck, queue, index } = session;
+  const { queue, index } = session;
   if (index >= queue.length) return finish(false);
-  const i = queue[index];
+  const { deck, i } = queue[index];
   $("card3d").classList.remove("flip");
   const card = deck.cards[i];
   $("front").innerHTML = `<div class="label">Frage</div><div class="text">${card.q}</div><div class="hint">Denk kurz nach, bevor du die Antwort zeigst.</div>`;
@@ -371,15 +389,15 @@ function flip() {
 }
 
 function rate(r) {
-  const { deck, queue, index } = session;
-  const i = queue[index];
-  const k = cardKey(deck, i);
+  const { queue, index } = session;
+  const item = queue[index];
+  const k = cardKey(item.deck, item.i);
   const c = cardState(k);
   if (r === 0) {
     c.ease = Math.max(1.3, c.ease - 0.2);
     c.interval = 0;
     c.reps = 0;
-    queue.push(i); // kommt später in dieser Sitzung wieder
+    queue.push(item); // kommt später in dieser Sitzung wieder
   } else {
     if (r === 1) { c.ease = Math.max(1.3, c.ease - 0.15); c.interval = Math.max(1, (c.interval || 1) * 1.2); }
     if (r === 2) { c.interval = Math.max(1, (c.interval || 1) * c.ease); c.reps += 1; }
