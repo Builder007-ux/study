@@ -99,6 +99,16 @@
   .rate .easy { border-color: rgba(34,211,238,.4); }
   .rate button:hover { transform: translateY(-1px); }
   .hidden { display: none !important; }
+  .week {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; align-items: end; height: 110px;
+    padding: 14px 14px 10px; margin-bottom: 18px; border-radius: var(--radius);
+    background: var(--surface); border: 1px solid var(--border);
+  }
+  .day { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; gap: 6px; }
+  .day .bar { width: 100%; max-width: 28px; border-radius: 8px; background: rgba(255,255,255,.08); min-height: 4px; }
+  .day.on .bar { background: linear-gradient(180deg, var(--accent), var(--accent-2)); }
+  .day span { font-size: .72rem; color: var(--muted); }
+  .day.today span { color: var(--text); font-weight: 700; }
 
   .done { text-align: center; padding: 30px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
   .done .big { font-size: 2.6rem; }
@@ -128,6 +138,7 @@
   <section id="home">
     <h1>IT verstehen, statt auswendig lernen</h1>
     <p class="sub">Kurze Karten, die genau dann wieder erscheinen, wenn du sie fast vergessen hast. So bleibt Wissen hängen.</p>
+    <div class="week" id="week"></div>
     <div class="decks" id="decks"></div>
     <div class="lock" id="lock">
       <b>Pro-Pakete</b> (Linux, Cloud-Security) sind in dieser Version gesperrt. Wenn die Lernmethode dir hilft, werden sie später über ein Abo freigeschaltet.
@@ -326,7 +337,24 @@ function renderHome() {
   mix.onclick = startMixed;
   wrap.prepend(mix);
   $("lock").classList.toggle("hidden", DECKS.every(d => !d.pro));
+  renderWeek();
   updateTopStats();
+}
+
+function renderWeek() {
+  const names = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+  const days = [];
+  for (let n = 6; n >= 0; n--) {
+    const d = new Date(Date.now() - n * DAY);
+    const key = d.toISOString().slice(0, 10);
+    days.push({ key, label: names[d.getDay()], count: store.days[key] || 0, today: n === 0 });
+  }
+  const max = Math.max(1, ...days.map(d => d.count));
+  $("week").innerHTML = days.map(d =>
+    `<div class="day ${d.count ? "on" : ""} ${d.today ? "today" : ""}" title="${d.count} Karten">` +
+    `<div class="bar" style="height:${Math.max(4, Math.round(d.count / max * 70))}px"></div>` +
+    `<span>${d.today ? "Heute" : d.label}</span></div>`
+  ).join("");
 }
 
 function deckButton(deck) {
